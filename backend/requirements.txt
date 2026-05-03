@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+sqlalchemy
+mysql-connector-python
+PyJWT
+opencv-python
+pyserial
+mediapipe
+python-multipart
+websockets
+pydantic<2.0
+numpy<2

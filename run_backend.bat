@@ -1,0 +1,13 @@
+@echo off
+echo Starting Emotion Detection Backend...
+cd backend
+if not exist venv (
+    echo Virtual environment not found. Creating one...
+    python -m venv venv
+)
+call venv\Scripts\activate.bat
+echo Installing dependencies...
+pip install -r requirements.txt
+pip install --upgrade typing_extensions pydantic fastapi
+echo Starting Uvicorn...
+python -m uvicorn main:app --reload --port 8000
