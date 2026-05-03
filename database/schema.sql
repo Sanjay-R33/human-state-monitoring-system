@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS emotion_logs (
     id INT AUTO_INCREMENT PRIMARY KEY,
     employee_id INT NOT NULL,
     emotion VARCHAR(50),
+    fatigue VARCHAR(50) DEFAULT 'Neutral',
     pulse_rate INT,
     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
     work_duration INT DEFAULT 0, -- Duration in seconds
