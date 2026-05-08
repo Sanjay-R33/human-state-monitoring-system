@@ -1,12 +1,12 @@
 # Python
+__pycache__/
+*.py[cod]
+*$py.class
 venv/
 env/
 .venv/
 backend/venv/
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
+backend/__pycache__/
 .Python
 env.bak/
 venv.bak/
@@ -33,6 +33,7 @@ database/*.db
 # ML Models & Data (Large files)
 *.pth
 *.task
+*.onnx
 backend/multitask_model.pth
 backend/face_landmarker.task
 

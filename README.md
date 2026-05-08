@@ -1,12 +1,20 @@
 # Human State Monitoring System
 
-This project is a full-stack Employee Emotion and Fatigue Monitoring System. It uses a Python (FastAPI) backend to process real-time webcam and hardware pulse data, and a React (Vite) frontend for real-time dashboard visualization.
+This project is a full-stack Human state Monitoring System. It uses a Python (FastAPI) backend to process real-time webcam and hardware pulse data, and a React (Vite) frontend for real-time dashboard visualization.
 
 ## Prerequisites
 
 - **Node.js** (v18+ recommended)
 - **Python** (v3.9+ recommended)
 - **Git**
+
+## System Features
+
+- **Employee Dashboard**: Employees can view their real-time statistics (Pulse, Emotion, Fatigue, Session Duration).
+- **Manager Dashboard**: Managers can oversee the real-time status of all employees. Inactive employees have their stats set to defaults (Neutral/0 BPM) to ensure clarity. Active employees are monitored in real-time.
+- **Multimodal AI**: Uses MediaPipe for facial landmarks and a custom PyTorch Deep Learning model to estimate emotion and fatigue. If the PyTorch model is absent, it seamlessly falls back to MediaPipe heuristics.
+- **Robust Hardware Integration**: Integrates with Arduino serial pulse sensors, equipped with Exponential Moving Average (EMA) noise cancellation. Supports simulated pulse data if hardware is unavailable.
+- **Auto-Reset Logic**: If an employee leaves the camera frame, their stats automatically reset to Neutral after a short timeout to prevent stale data.
 
 ## Step-by-Step Setup Guide
 

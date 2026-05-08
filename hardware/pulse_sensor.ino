@@ -1,59 +1,171 @@
-// Pulse Sensor Arduino Sketch
-// Reads analog data from the pulse sensor and sends it over Serial.
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
 
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
 
-int pulsePin = A0; // Pulse Sensor purple wire connected to analog pin A0
-int blinkPin = 13; // pin to blink led at each beat
-int fadePin = 5;   // pin to do fancy classy fading blink at each beat
-int fadeRate = 0;  // used to fade LED on with PWM on fadePin
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 
-// Volatile Variables, used in the interrupt service routine!
-volatile int BPM;            // int that holds raw Analog in 0. updated every 2mS
-volatile int Signal;         // holds the incoming raw data
-volatile int IBI = 600;      // int that holds the time interval between beats! Must be seeded!
-volatile bool Pulse = false; // "True" when User's live heartbeat is detected. "False" when not a "live" beat.
-volatile bool QS = false;    // becomes true when Arduino finds a beat.
+// =========================
+// Pulse Sensor
+// =========================
+int pulsePin = A0;
+int signal = 0;
 
-// For simplicity in this basic setup without full timer interrupts:
-// We will just read the analog value and simulate BPM or send raw signal
-// For a production system, use the PulseSensorPlayground library.
-// Here we send simple simulated/calculated BPM for the Python backend to read.
+// =========================
+// BPM Variables
+// =========================
+int threshold = 560;   // Adjust if needed
+unsigned long lastBeatTime = 0;
 
-unsigned long lastTime = 0;
-int simulatedBPM = 75;
+int BPM = 0;
+int avgBPM = 0;
 
-void setup()
-{
-  Serial.begin(9600);        // we agree to talk fast!
-  pinMode(blinkPin, OUTPUT); // pin that will blink to your heartbeat!
-  pinMode(fadePin, OUTPUT);  // pin that will fade to your heartbeat!
-  randomSeed(analogRead(0)); // Seed random for better simulation
-}
+bool beatDetected = false;
 
-void loop()
-{
-  // Read the pulse sensor raw signal
-  Signal = analogRead(pulsePin);
+// =========================
+// BPM Averaging
+// =========================
+#define RATE_SIZE 10
 
-  // In a real scenario, use the library or interrupt logic to accurately calculate BPM.
-  // For demonstration/testing, we'll send a pseudo-randomized BPM if no complex library is installed,
-  // or you can implement the full peak-detection logic here.
+int rates[RATE_SIZE];
+int rateSpot = 0;
 
-  // Basic peak detection simulation for sending Data:
-  // If we wanted to send raw data: Serial.println(Signal);
+// =========================
+// OLED Graph Buffer
+// =========================
+int graph[128];
 
-  // Sending simulated BPM every 1 second just for backend testing
-  if (millis() - lastTime > 2000)
-  {
-    // simulate realistic BPM range 60-100
-    simulatedBPM = 100 + random(0, 40);
+void setup() {
 
-    // The backend expects BPM data. Let's prefix it so backend knows it's a BPM value
-    Serial.print("BPM:");
-    Serial.println(simulatedBPM);
+  Serial.begin(9600);
 
-    lastTime = millis();
+  // OLED initialization
+  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
+    Serial.println("OLED failed");
+    while (1);
   }
 
-  delay(20); // take a break
+  display.clearDisplay();
+  display.setTextColor(WHITE);
+
+  // Initialize graph
+  for (int i = 0; i < 128; i++) {
+    graph[i] = 32;
+  }
+
+  // Initialize BPM array
+  for (int i = 0; i < RATE_SIZE; i++) {
+    rates[i] = 0;
+  }
+}
+
+void loop() {
+
+  // =========================
+  // Smooth Sensor Reading
+  // =========================
+  long sum = 0;
+
+  for (int i = 0; i < 5; i++) {
+    sum += analogRead(pulsePin);
+    delay(2);
+  }
+
+  signal = sum / 5;
+
+  // =========================
+  // Heartbeat Detection
+  // =========================
+  if (signal > threshold && !beatDetected) {
+
+    beatDetected = true;
+
+    // Ignore fake fast beats
+    if (millis() - lastBeatTime > 450) {
+
+      unsigned long delta = millis() - lastBeatTime;
+      lastBeatTime = millis();
+
+      BPM = 60000 / delta;
+
+      // Accept only realistic BPM range
+      if (BPM > 45 && BPM < 130) {
+
+        rates[rateSpot++] = BPM;
+        rateSpot %= RATE_SIZE;
+
+        // Calculate average BPM
+        int total = 0;
+        int count = 0;
+
+        for (int i = 0; i < RATE_SIZE; i++) {
+
+          if (rates[i] > 0) {
+            total += rates[i];
+            count++;
+          }
+        }
+
+        if (count > 0) {
+          avgBPM = total / count;
+        }
+      }
+    }
+  }
+
+  // Reset beat detection
+  if (signal < threshold - 20) {
+    beatDetected = false;
+  }
+
+  // =========================
+  // Send Data to Software
+  // =========================
+  if (avgBPM > 0) {
+    Serial.print("BPM:");
+    Serial.println(avgBPM);
+  }
+
+  // =========================
+  // Update Graph
+  // =========================
+
+  // Shift graph left
+  for (int i = 0; i < 127; i++) {
+    graph[i] = graph[i + 1];
+  }
+
+  // Convert signal to OLED height
+  int y = map(signal, 450, 750, 63, 0);
+
+  y = constrain(y, 0, 63);
+
+  graph[127] = y;
+
+  // =========================
+  // OLED Display
+  // =========================
+  display.clearDisplay();
+
+  // Draw waveform
+  for (int x = 0; x < 127; x++) {
+    display.drawLine(x, graph[x], x + 1, graph[x + 1], WHITE);
+  }
+
+  // Display BPM
+  display.setTextSize(1);
+
+  display.setCursor(0, 0);
+  // display.print("BPM: ");
+  // display.print(BPM);
+
+  display.setCursor(0, 10);
+  display.print("BPM: ");
+  display.print(avgBPM);
+
+  display.display();
+
+  delay(20);
 }

@@ -27,8 +27,22 @@ const ManagerDashboard = () => {
 
         ws.onmessage = (event) => {
           try {
-            const data = JSON.parse(event.data);
+            const parsedData = JSON.parse(event.data);
             const now = Date.now();
+            
+            // Enforce default values for inactive employees
+            const data = parsedData.map(emp => {
+              if (emp.status === 'Inactive') {
+                return {
+                  ...emp,
+                  emotion: 'Neutral',
+                  fatigue: 'Neutral',
+                  pulse_rate: 0,
+                  work_duration: 0
+                };
+              }
+              return emp;
+            });
             
             data.forEach(emp => {
               const isPulseAbnormal = emp.pulse_rate > 0 && (emp.pulse_rate < 60 || emp.pulse_rate > 100);

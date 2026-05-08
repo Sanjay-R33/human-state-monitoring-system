@@ -23,6 +23,7 @@ class MonitorService:
         self.current_frame = None
         self.dl_emotion = "Neutral"
         self.dl_fatigue = "Neutral"
+        self.last_face_time = time.time()
         
         self.dl_model = None
         if HAS_TORCH:
@@ -122,13 +123,19 @@ class MonitorService:
                     line = self.ser.readline().decode('utf-8').strip()
                     if line.startswith("BPM:"):
                         bpm_str = line.split(":")[1]
-                        self.pulse_rate = int(bpm_str)
+                        new_bpm = int(bpm_str)
+                        # Noise cancellation: filter abnormal spikes and apply exponential moving average
+                        if 30 <= new_bpm <= 220:
+                            if self.pulse_rate == 0 or self.pulse_rate == 75: # First valid reading
+                                self.pulse_rate = new_bpm
+                            else:
+                                self.pulse_rate = int(0.3 * new_bpm + 0.7 * self.pulse_rate)
                 except Exception:
                     pass
             else:
                 # Simulate if no hardware
                 import random
-                self.pulse_rate = 60 + random.randint(0, 40)
+                self.pulse_rate = 60 + random.randint(0, 20)
                 time.sleep(2)
             time.sleep(0.1)
 
@@ -147,6 +154,7 @@ class MonitorService:
                             result = self.landmarker.detect(mp_image)
                             
                             if result.face_blendshapes:
+                                self.last_face_time = time.time()
                                 blendshapes = result.face_blendshapes[0]
                                 scores = {bs.category_name: bs.score for bs in blendshapes}
                                 
@@ -186,6 +194,12 @@ class MonitorService:
                                     self.face_emotion = max_emotion
                                 else:
                                     self.face_emotion = "Neutral"
+                            else:
+                                # Reset states to Neutral if no face detected for over 2 seconds
+                                if time.time() - getattr(self, 'last_face_time', time.time()) > 2.0:
+                                    self.face_emotion = "Neutral"
+                                    self.dl_emotion = "Neutral"
+                                    self.dl_fatigue = "Neutral"
                         except Exception as e:
                             print(f"MediaPipe error: {e}")
                     

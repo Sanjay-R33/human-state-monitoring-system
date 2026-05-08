@@ -11,11 +11,11 @@ class MultitaskBlendshapeNet(nn.Module):
         self.shared_fc2 = nn.Linear(128, 64)
         self.dropout = nn.Dropout(0.3)
         
-        # Task 1 Head: Emotion (5 classes: Happy, Sad, Angry, Surprise, Neutral)
+        # Task 1 Head: Emotion (7 classes: Angry, Disgust, Fear, Happy, Dull, Surprise, Neutral)
         self.emotion_head = nn.Sequential(
             nn.Linear(64, 32),
             nn.ReLU(),
-            nn.Linear(32, 5)
+            nn.Linear(32, 7)
         )
         
         # Task 2 Head: Fatigue (3 classes: Awake, Tired, Sleepy)
