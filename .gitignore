@@ -1,43 +1,57 @@
+# ========================
 # Python
+# ========================
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyo
+.Python
 venv/
 env/
 .venv/
-backend/venv/
-backend/__pycache__/
-.Python
 env.bak/
 venv.bak/
+*.egg-info/
+dist/
+build/
 
+# ========================
 # Environment Variables
+# ========================
 .env
 .env.local
 .env.*.local
 
+# ========================
 # Node / Frontend
+# ========================
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-frontend/node_modules/
+pnpm-debug.log*
 frontend/build/
 frontend/dist/
 
-# Databases
+# ========================
+# Database
+# ========================
 *.db
 *.sqlite3
-database/*.db
 
-# ML Models & Data (Large files)
-*.pth
-*.task
+# ========================
+# ML Training Data (large files)
+# ========================
+# NOTE: multitask_model.pth (~83KB) is intentionally tracked
+# so users get the trained model out of the box.
+*.pt
 *.onnx
-backend/multitask_model.pth
-backend/face_landmarker.task
+*.task
+backend/archive/
 
+# ========================
 # IDE / Editor
+# ========================
 .vscode/
 .idea/
 *.suo
@@ -46,7 +60,9 @@ backend/face_landmarker.task
 *.sln
 *.sw?
 
+# ========================
 # OS Files
+# ========================
 .DS_Store
 .DS_Store?
 ._*
@@ -54,3 +70,4 @@ backend/face_landmarker.task
 .Trashes
 ehthumbs.db
 Thumbs.db
+desktop.ini

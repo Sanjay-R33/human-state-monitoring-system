@@ -11,7 +11,17 @@ const EmployeeDashboard = () => {
   const token = localStorage.getItem('token');
   const name = localStorage.getItem('name');
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    const sessionId = localStorage.getItem('session_id');
+    if (sessionId) {
+      try {
+        await axios.post(`${API_URL}/logout?session_id=${sessionId}`, {}, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      } catch (err) {
+        console.error("Logout error", err);
+      }
+    }
     localStorage.clear();
     window.location.href = '/';
   };

@@ -167,7 +167,7 @@ class MonitorService:
                                                 input_tensor = torch.tensor([blendshape_list], dtype=torch.float32)
                                                 emo_logits, fat_logits = self.dl_model(input_tensor)
                                                 
-                                                emo_classes = ['Happy', 'Sad', 'Angry', 'Surprise', 'Neutral']
+                                                emo_classes = ['Angry', 'Disgust', 'Fear', 'Happy', 'Sad', 'Surprise', 'Neutral']
                                                 fat_classes = ['Awake', 'Tired', 'Sleepy']
                                                 
                                                 self.dl_emotion = emo_classes[torch.argmax(emo_logits, dim=1).item()]

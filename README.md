@@ -1,68 +1,154 @@
 # Human State Monitoring System
 
-This project is a full-stack Human state Monitoring System. It uses a Python (FastAPI) backend to process real-time webcam and hardware pulse data, and a React (Vite) frontend for real-time dashboard visualization.
+A full-stack, real-time employee monitoring system that detects **emotion**, **fatigue**, and **pulse rate** using AI-powered facial analysis and hardware sensors. Built with a FastAPI backend, React (Vite) frontend, and Arduino hardware integration.
+
+## System Features
+
+- **Employee Dashboard** — Employees view their real-time stats: Pulse, Emotion, Fatigue, and Session Duration.
+- **Manager Dashboard** — Managers oversee the real-time status of all employees, with usage tracking and over-time alerts. Inactive employees default to neutral stats for clarity.
+- **Multimodal AI** — Uses MediaPipe for facial landmarks and a custom PyTorch multitask deep learning model (`MultitaskBlendshapeNet`) to estimate emotion and fatigue. Falls back seamlessly to MediaPipe heuristics if the model file is absent.
+- **Hardware Integration** — Integrates with Arduino serial pulse sensors with Exponential Moving Average (EMA) noise cancellation. Supports simulated pulse data if hardware is unavailable.
+- **Session Tracking** — Tracks login/logout sessions with daily usage statistics and 8-hour overtime alerts for managers.
+- **Auto-Reset Logic** — If an employee leaves the camera frame, stats automatically reset to Neutral after a short timeout.
 
 ## Prerequisites
 
 - **Node.js** (v18+ recommended)
 - **Python** (v3.9+ recommended)
+- **MySQL Server** (v8.0+ recommended)
 - **Git**
+- **Arduino IDE** (optional, for hardware setup)
 
-## System Features
+## Project Structure
 
-- **Employee Dashboard**: Employees can view their real-time statistics (Pulse, Emotion, Fatigue, Session Duration).
-- **Manager Dashboard**: Managers can oversee the real-time status of all employees. Inactive employees have their stats set to defaults (Neutral/0 BPM) to ensure clarity. Active employees are monitored in real-time.
-- **Multimodal AI**: Uses MediaPipe for facial landmarks and a custom PyTorch Deep Learning model to estimate emotion and fatigue. If the PyTorch model is absent, it seamlessly falls back to MediaPipe heuristics.
-- **Robust Hardware Integration**: Integrates with Arduino serial pulse sensors, equipped with Exponential Moving Average (EMA) noise cancellation. Supports simulated pulse data if hardware is unavailable.
-- **Auto-Reset Logic**: If an employee leaves the camera frame, their stats automatically reset to Neutral after a short timeout to prevent stale data.
+```
+human-state-monitoring-system/
+├── backend/                  # FastAPI backend (ML inference, API, WebSocket)
+│   ├── main.py               # API routes and WebSocket handler
+│   ├── monitor.py             # MonitorService (camera, MediaPipe, pulse)
+│   ├── ml_model.py            # MultitaskBlendshapeNet PyTorch model
+│   ├── extract_features.py    # Feature extraction from facial landmarks
+│   ├── models.py              # SQLAlchemy ORM models
+│   ├── database.py            # Database connection config
+│   ├── auth.py                # JWT authentication helpers
+│   ├── train_multitask.py     # Model training script
+│   └── requirements.txt       # Python dependencies
+├── frontend/                 # React + Vite frontend
+│   └── src/
+│       ├── components/
+│       │   ├── Login.jsx             # Login & Registration page
+│       │   ├── EmployeeDashboard.jsx # Employee monitoring view
+│       │   └── ManagerDashboard.jsx  # Manager overview dashboard
+│       ├── App.jsx            # App router
+│       └── main.jsx           # Entry point
+├── database/
+│   └── schema.sql             # Reference MySQL schema
+├── hardware/
+│   └── pulse_sensor.ino       # Arduino pulse sensor firmware
+└── run_backend.bat            # Windows backend startup script
+```
 
 ## Step-by-Step Setup Guide
 
 ### 1. Clone the Repository
+
 ```bash
 git clone https://github.com/Sanjay-R33/human-state-monitoring-system.git
 cd human-state-monitoring-system
 ```
 
-### 2. Set Up the Backend
-The backend uses FastAPI and handles all the machine learning inference (MediaPipe and PyTorch). We have a convenient script to automate the setup for Windows users.
+### 2. Set Up MySQL Database
 
-1. Double-click the **`run_backend.bat`** file in the root of the project.
-   - *Alternatively, run it via terminal:* `.\run_backend.bat`
-2. **What this script does:**
-   - Automatically creates a Python virtual environment (`venv`).
-   - Activates it and installs all dependencies from `backend/requirements.txt`.
-   - Starts the Uvicorn server at `http://localhost:8000`.
+1. Ensure MySQL Server is running on `localhost`.
+2. Create the database and tables by running the reference schema:
+   ```bash
+   mysql -u root -p < database/schema.sql
+   ```
+   > **Note:** The default credentials in the backend are `root:root`. Update `backend/database.py` if your MySQL credentials differ.
 
-> **Note on Machine Learning Models:** 
-> - The `face_landmarker.task` file will automatically download on the first run.
-> - The `multitask_model.pth` (Deep Learning model) is too large for GitHub. You must ask the repository owner for this file and place it inside the `backend/` directory for full Deep Learning capabilities. (If it's missing, the system will still function using the MediaPipe fallback).
+### 3. Set Up the Backend
 
-### 3. Set Up the Frontend
-The frontend is a modern React application built with Vite and TailwindCSS.
+The backend uses FastAPI and handles all machine learning inference (MediaPipe + PyTorch).
 
-1. Open a **new terminal window** (keep the backend running in the other).
-2. Navigate to the frontend directory:
+**Option A — Using the startup script (Windows):**
+
+1. Double-click **`run_backend.bat`** in the project root (or run `.\run_backend.bat` in a terminal).
+2. The script will:
+   - Create a Python virtual environment (`venv`) if one doesn't exist.
+   - Install all dependencies from `backend/requirements.txt`.
+   - Start the Uvicorn server at `http://localhost:8000`.
+
+**Option B — Manual setup:**
+
+```bash
+cd backend
+python -m venv venv
+venv\Scripts\activate        # Windows
+# source venv/bin/activate   # macOS/Linux
+pip install -r requirements.txt
+python -m uvicorn main:app --reload --port 8000
+```
+
+> **Note on ML Models:**
+> - `face_landmarker.task` — Will download automatically on first run.
+> - `multitask_model.pth` — The pre-trained deep learning model is **included in the repository**. It works out of the box after cloning.
+> - **No dataset download is required to run the system.** The FER2013 dataset is only needed if you want to retrain the model (see Step 6).
+
+### 4. Set Up the Frontend
+
+The frontend is a React application built with Vite.
+
+1. Open a **new terminal** (keep the backend running).
+2. Navigate and install:
    ```bash
    cd frontend
-   ```
-3. Install the dependencies:
-   ```bash
    npm install
-   ```
-4. Start the development server:
-   ```bash
    npm run dev
    ```
-5. Open your browser and go to `http://localhost:5173`.
+3. Open your browser at `http://localhost:5173`.
 
-### 4. Hardware Setup (Optional but Recommended)
-The system expects an Arduino pulse sensor connected to **`COM5`**. 
-- If you have the hardware, upload the `hardware/pulse_sensor.ino` file to your Arduino.
-- If you don't have the hardware, the backend will automatically generate **simulated pulse data** so you can still test the software.
+### 5. Hardware Setup (Optional)
+
+The system integrates with an Arduino pulse sensor on **COM5**.
+
+- **With hardware:** Upload `hardware/pulse_sensor.ino` to your Arduino using the Arduino IDE.
+- **Without hardware:** The backend automatically generates simulated pulse data.
+
+### 6. Retraining the Model (Optional)
+
+This is **not required** to run the system. Only follow these steps if you want to retrain the deep learning model from scratch.
+
+1. Download the [FER2013 dataset](https://www.kaggle.com/datasets/msambare/fer2013) from Kaggle.
+2. Extract it into `backend/archive/` so the structure looks like:
+   ```
+   backend/archive/
+   ├── train/
+   │   ├── angry/
+   │   ├── disgust/
+   │   ├── fear/
+   │   ├── happy/
+   │   ├── neutral/
+   │   ├── sad/
+   │   └── surprise/
+   └── test/
+       └── ...
+   ```
+3. Run the feature extraction script (processes images → blendshape features):
+   ```bash
+   cd backend
+   python extract_features.py
+   ```
+4. Train the model:
+   ```bash
+   python train_multitask.py
+   ```
+5. The trained model will be saved as `backend/multitask_model.pth`.
 
 ## Troubleshooting
 
-- **Webcam not turning on:** Ensure no other application (like Zoom or Teams) is using your camera. The backend script will read from default camera index `0`.
-- **Database errors:** The system uses SQLite. The database file will be automatically created in the `backend/` directory when you first start the FastAPI server. If you face issues, you can safely delete `*.db` files to reset your local database.
-- **Port conflicts:** If port `8000` (Backend) or `5173` (Frontend) is in use, you can modify `run_backend.bat` and `frontend/package.json` respectively to use different ports.
+| Issue | Solution |
+|-------|----------|
+| **Webcam not turning on** | Ensure no other app (Zoom, Teams, etc.) is using the camera. The backend reads from camera index `0`. |
+| **MySQL connection error** | Verify MySQL is running and credentials in `backend/database.py` match your setup. Run `database/schema.sql` to initialize tables. |
+| **Port conflicts** | Backend uses port `8000`, frontend uses `5173`. Modify `run_backend.bat` or `frontend/vite.config.js` to change ports. |
+| **Missing ML model** | `multitask_model.pth` is included in the repo. If it's missing, the system still works using MediaPipe fallback. To retrain, see Step 6. |

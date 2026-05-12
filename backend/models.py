@@ -13,6 +13,7 @@ class User(Base):
     role = Column(Enum('Employee', 'Manager'), nullable=False)
     
     logs = relationship("EmotionLog", back_populates="user", cascade="all, delete")
+    sessions = relationship("UserSession", back_populates="user", cascade="all, delete")
 
 class EmotionLog(Base):
     __tablename__ = "emotion_logs"
@@ -27,3 +28,14 @@ class EmotionLog(Base):
     status = Column(Enum('Active', 'Inactive'), default='Active')
 
     user = relationship("User", back_populates="logs")
+
+class UserSession(Base):
+    __tablename__ = "user_sessions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    login_time = Column(DateTime, default=datetime.utcnow)
+    logout_time = Column(DateTime, nullable=True)
+    session_duration = Column(Integer, default=0)
+
+    user = relationship("User", back_populates="sessions")
